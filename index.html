@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{
-  /* Layout: one centred column. Sign-in card, or summary card, add-an-action card, then one card per owner (two columns wide, one on phones). */
+  /* Layout: one centred column. Sign-in card, or summary card, add-an-action card, then one card per owner (two columns wide, one on phones). Admins get a Manage users page in the same style. */
   --bg:#ECEFF2;
   --card:#FFFFFF;
   --field:#F5F7F9;
@@ -88,21 +88,23 @@ h2{margin:0;font:700 24px/1.2 var(--font-display);letter-spacing:-.01em}
 .field{display:flex;flex-direction:column;gap:8px;min-width:0}
 .field.wide{grid-column:1/-1}
 .lab{font-size:15px;font-weight:600;color:var(--muted)}
-input[type=text],input[type=date],input[type=email],input[type=password]{
+input[type=text],input[type=date],input[type=email],input[type=password],select{
   font:inherit;color:var(--ink);background:var(--field);
   border:1.5px solid var(--line-strong);border-radius:10px;
   padding:12px 14px;min-height:54px;width:100%;min-width:0;
 }
 input::placeholder{color:var(--muted);opacity:.8}
-input:focus{border-color:var(--accent)}
-input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input:focus,select:focus{border-color:var(--accent)}
+input:focus-visible,select:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.check{display:flex;align-items:center;gap:12px;font-size:17px;cursor:pointer}
+.check input{width:24px;height:24px;margin:0;flex:none;accent-color:var(--accent)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
   font:600 15px var(--font-body);color:var(--ink);background:var(--chip);
   border:1.5px solid transparent;border-radius:999px;padding:6px 14px;min-height:38px;cursor:pointer;
 }
 .chip[aria-pressed="true"]{border-color:var(--ink)}
-.formfoot{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.formfoot{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
 .err{flex:1 1 220px;margin:0;color:var(--red);font-size:16px;font-weight:600}
 .btn{
   margin-left:auto;font:700 18px var(--font-body);background:var(--accent);color:var(--accent-ink);
@@ -124,6 +126,8 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   font:700 16px var(--font-body);color:inherit;background:transparent;
   border:1.5px solid currentColor;border-radius:10px;padding:8px 14px;min-height:42px;cursor:pointer;
 }
+.linkbtn:disabled{opacity:.6;cursor:default}
+.linkbtn.danger{color:var(--red);border-color:var(--red-line)}
 .who .linkbtn{color:var(--ink);border-color:var(--line-strong);min-height:38px;padding:6px 12px;font-size:15px}
 
 /* list header + filters */
@@ -142,10 +146,14 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
 .av{width:46px;height:46px;border-radius:50%;background:var(--chip);display:grid;place-items:center;font:700 20px var(--font-display);flex:none}
 .oname{min-width:0;flex:1}
 .oname h3{margin:0;font:700 22px/1.2 var(--font-display);overflow-wrap:anywhere}
-.oname p{margin:2px 0 0;font-size:15px;color:var(--muted)}
+.oname p{margin:2px 0 0;font-size:15px;color:var(--muted);overflow-wrap:anywhere}
 .pill{
   display:inline-block;font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;
   background:var(--red-tint);color:var(--red);border:1px solid var(--red-line);white-space:nowrap;
+}
+.badge{
+  display:inline-block;font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;
+  background:var(--chip);color:var(--ink);white-space:nowrap;
 }
 .items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .item{display:flex;align-items:flex-start;gap:2px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:4px 4px 4px 2px}
@@ -175,6 +183,16 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
 .empty{border:1.5px dashed var(--line-strong);border-radius:16px;padding:28px;color:var(--muted);grid-column:1/-1}
 .empty strong{display:block;color:var(--ink);font:700 22px var(--font-display);margin-bottom:4px}
 
+/* manage users */
+.users{display:flex;flex-direction:column;gap:12px}
+.urow{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.uhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.uactions{display:flex;flex-wrap:wrap;gap:8px}
+.urow form.inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.urow form.inline input{flex:1 1 220px;width:auto}
+.urow form.inline .btn{margin-left:0;min-height:48px;padding:10px 22px;font-size:16px}
+
 /* toast */
 .toastwrap{
   position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;z-index:20;
@@ -192,12 +210,13 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
 
 @media (prefers-reduced-motion:no-preference){
   .bar>span{transition:width .35s ease}
-  .chk,.btn,.del,.fbtn,.chip{transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+  .chk,.btn,.del,.fbtn,.chip,.linkbtn{transition:background-color .15s ease,border-color .15s ease,color .15s ease}
 }
 @media (max-width:560px){
   .fields{grid-template-columns:minmax(0,1fr)}
   .card{padding:18px}
   .ocard{padding:16px}
+  .urow{padding:16px}
   .btn{width:100%}
   .stat{padding:10px 10px}
 }
@@ -217,8 +236,8 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
     <h2 id="signInTitle">Sign in</h2>
     <form id="signInForm" novalidate>
       <div class="field">
-        <label class="lab" for="aEmail">Email</label>
-        <input id="aEmail" type="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false">
+        <label class="lab" for="aEmail">Username or email</label>
+        <input id="aEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
       </div>
       <div class="field">
         <label class="lab" for="aPass">Password</label>
@@ -229,18 +248,18 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
         <button class="btn" id="aBtn" type="submit">Sign in</button>
       </div>
     </form>
-    <p class="hint">Use the email and password your team admin set up for you.</p>
+    <p class="hint">Use the username and password your admin set up for you.</p>
   </section>
 </div>
 
-<!-- Signed in, but not on the team list (or Supabase unreachable) -->
+<!-- Signed in, but no access (or Supabase unreachable) -->
 <div class="narrow" id="noAccessView" hidden>
   <header>
     <h1>Meeting Action Tracker</h1>
   </header>
   <section class="card">
-    <h2 id="naTitle">Your email is not on the team list</h2>
-    <p class="hint" id="naMsg">Ask your team admin to add your email address, then sign in again.</p>
+    <h2 id="naTitle">Your account has no access yet</h2>
+    <p class="hint" id="naMsg">Ask an admin to add you to the team, then sign in again.</p>
     <div class="formfoot" style="margin-top:18px">
       <button class="linkbtn" type="button" id="naRetry" hidden>Try again</button>
       <button class="linkbtn" type="button" data-signout>Sign out</button>
@@ -248,7 +267,36 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   </section>
 </div>
 
-<!-- Signed in -->
+<!-- First sign-in with a temporary password -->
+<div class="narrow" id="pwChangeView" hidden>
+  <header>
+    <h1>Meeting Action Tracker</h1>
+  </header>
+  <section class="card auth" aria-labelledby="pwTitle">
+    <h2 id="pwTitle">Choose a new password</h2>
+    <p class="hint">Your admin gave you a temporary password. Pick one of your own to continue.</p>
+    <form id="pwForm" novalidate>
+      <div class="field">
+        <label class="lab" for="pwNew">New password</label>
+        <input id="pwNew" type="password" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label class="lab" for="pwConfirm">Type it again</label>
+        <input id="pwConfirm" type="password" autocomplete="new-password">
+      </div>
+      <div class="formfoot">
+        <p class="err" id="pwErr" role="alert" hidden></p>
+        <button class="btn" id="pwBtn" type="submit">Save password</button>
+      </div>
+    </form>
+    <p class="hint">Use at least 8 characters.</p>
+    <div class="formfoot" style="margin-top:14px">
+      <button class="linkbtn" type="button" data-signout>Sign out</button>
+    </div>
+  </section>
+</div>
+
+<!-- Signed in: actions -->
 <main class="wrap" id="appView" hidden>
   <header class="top">
     <div>
@@ -259,6 +307,7 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
     <div class="who">
       <span class="live" id="live">Offline</span>
       <span class="em" id="whoEmail"></span>
+      <button class="linkbtn" type="button" id="manageBtn" hidden>Manage users</button>
       <button class="linkbtn" type="button" data-signout>Sign out</button>
     </div>
   </header>
@@ -299,7 +348,7 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   </section>
 
   <div class="note warn" id="netNote" hidden>
-    <p>Cannot reach Supabase right now, so what you see may be out of date.</p>
+    <p id="netMsg">Cannot reach Supabase right now, so what you see may be out of date.</p>
     <button class="linkbtn" type="button" id="netRetry">Try again</button>
   </div>
   <div class="note" id="sampleNote" hidden>
@@ -314,6 +363,64 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   <div class="owners" id="owners"></div>
 </main>
 
+<!-- Admin: manage users -->
+<main class="wrap" id="usersView" hidden>
+  <header class="top">
+    <div>
+      <p class="date">Admin</p>
+      <h1>Manage users</h1>
+      <p class="lede">Add people, set their first password and choose who can sign in.</p>
+    </div>
+    <div class="who">
+      <button class="linkbtn" type="button" id="backBtn">Back to actions</button>
+      <span class="em" id="whoEmail2"></span>
+      <button class="linkbtn" type="button" data-signout>Sign out</button>
+    </div>
+  </header>
+
+  <section class="card add" aria-labelledby="addUserTitle">
+    <h2 id="addUserTitle">Add a user</h2>
+    <form id="userForm" novalidate>
+      <div class="fields">
+        <div class="field">
+          <label class="lab" for="uName">Username</label>
+          <input id="uName" type="text" maxlength="30" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. priya">
+        </div>
+        <div class="field">
+          <label class="lab" for="uPass">Initial password</label>
+          <input id="uPass" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="At least 6 characters">
+        </div>
+        <div class="field">
+          <label class="lab" for="uRole">Role</label>
+          <select id="uRole">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="lab" for="uEmail">Email (optional)</label>
+          <input id="uEmail" type="email" autocomplete="off" placeholder="Leave blank to sign in with the username">
+        </div>
+        <label class="check field wide" for="uMust" style="flex-direction:row">
+          <input id="uMust" type="checkbox" checked>
+          <span>Ask them to choose a new password the first time they sign in</span>
+        </label>
+      </div>
+      <div class="formfoot">
+        <p class="err" id="uErr" role="alert" hidden></p>
+        <button class="linkbtn" type="button" id="sampleUsers">Add sample team</button>
+        <button class="btn" id="uBtn" type="submit">Add user</button>
+      </div>
+    </form>
+    <p class="hint">Add sample team creates priya, dan and marcus as members, each with the password "password".</p>
+  </section>
+
+  <div class="listhead">
+    <h2>Team</h2>
+  </div>
+  <div class="users" id="userList"></div>
+</main>
+
 <div class="toastwrap" role="status" aria-live="polite">
   <div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
 </div>
@@ -326,6 +433,11 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   // what protects the data is the row-level security on the tables.
   var SUPABASE_URL = 'https://wayrxeyubrqbnnkjyxrv.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_-oDF19TLr2kyXLKrVjefmA_K0jZvC8e';
+  // People created with only a username sign in with username@LOGIN_DOMAIN.
+  // Keep in sync with the admin-users function.
+  var LOGIN_DOMAIN = 'tracker.test';
+  var SAMPLE_USERS = ['priya', 'dan', 'marcus'];
+  var SAMPLE_PASSWORD = 'password';
 
   function $(id) { return document.getElementById(id); }
 
@@ -367,16 +479,27 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   }
   function failMsg(err) {
     if (err && (err.code === '42501' || /row-level security/i.test(err.message || ''))) {
-      return 'Your email is not on the team list, so that was not saved.';
+      return 'Your account does not have access, so that was not saved.';
     }
     return 'Could not save that. Check your connection and try again.';
   }
+  function toEmail(id) {
+    id = id.trim();
+    return id.indexOf('@') > -1 ? id : id.toLowerCase() + '@' + LOGIN_DOMAIN;
+  }
+  function loginName(p) {
+    return p.email.toLowerCase() === p.username + '@' + LOGIN_DOMAIN ? p.username : p.email;
+  }
 
   /* ---------- views ---------- */
-  var views = { auth: $('authView'), noaccess: $('noAccessView'), app: $('appView') };
+  var views = {
+    auth: $('authView'), noaccess: $('noAccessView'), pwchange: $('pwChangeView'),
+    app: $('appView'), users: $('usersView')
+  };
   function showView(name) {
     Object.keys(views).forEach(function (k) { views[k].hidden = (k !== name); });
     $('bootMsg').hidden = true;
+    window.scrollTo(0, 0);
   }
 
   var ownersEl = $('owners'), filtersEl = $('filters'), chipsEl = $('chips'), errEl = $('err');
@@ -389,6 +512,9 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   var lastDay = '';
   var toastTimer = 0;
   var currentUser = null;
+  var profile = null;
+  var profiles = [];
+  var ui = { resetFor: null, removeFor: null };
   var channel = null, pollTimer = 0, reloadTimer = 0;
 
   function mapRow(r) {
@@ -398,18 +524,25 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
     return state.actions.filter(function (a) { return a.id === id; })[0];
   }
 
-  /* ---------- data ---------- */
+  /* ---------- data: actions ---------- */
   function reload() {
     return sb.from('actions')
       .select('id,title,owner,due_date,done,is_sample')
       .order('due_date', { ascending: true })
       .then(function (r) {
-        if (r.error) { netNote.hidden = false; return; }
+        if (r.error) {
+          $('netMsg').textContent = 'Could not load the latest actions: ' + r.error.message;
+          netNote.hidden = false;
+          return;
+        }
         netNote.hidden = true;
         state.actions = r.data.map(mapRow);
         state.loaded = true;
         render();
-      }, function () { netNote.hidden = false; });
+      }, function () {
+        $('netMsg').textContent = 'Cannot reach Supabase right now, so what you see may be out of date.';
+        netNote.hidden = false;
+      });
   }
   function scheduleReload() {
     clearTimeout(reloadTimer);
@@ -447,30 +580,50 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
     showView('noaccess');
   }
 
+  function enterApp() {
+    var label = profile.username + (profile.role === 'admin' ? ' · Admin' : '');
+    $('whoEmail').textContent = label;
+    $('whoEmail2').textContent = label;
+    $('manageBtn').hidden = profile.role !== 'admin';
+    state = { actions: [], loaded: false };
+    showView('app');
+    render();
+    reload();
+    startLive();
+  }
+
   function checkAccess() {
-    sb.from('team_members').select('email').maybeSingle().then(function (r) {
-      if (r.error) {
+    sb.from('profiles')
+      .select('id,username,email,role,active,must_change_password')
+      .eq('id', currentUser.id)
+      .maybeSingle()
+      .then(function (r) {
+        if (r.error) { noAccess('Could not load your account', r.error.message, true); return; }
+        if (!r.data) {
+          noAccess('Your account has no access yet', 'Ask an admin to add you to the team, then sign in again.', false);
+          return;
+        }
+        if (!r.data.active) {
+          noAccess('Your account is deactivated', 'Ask an admin to turn it back on.', false);
+          return;
+        }
+        profile = r.data;
+        if (profile.must_change_password) {
+          $('pwNew').value = ''; $('pwConfirm').value = '';
+          setPwErr('');
+          showView('pwchange');
+          return;
+        }
+        enterApp();
+      }, function () {
         noAccess('Could not reach Supabase', 'Check your connection and try again.', true);
-        return;
-      }
-      if (!r.data) {
-        noAccess('Your email is not on the team list', 'Ask your team admin to add your email address, then sign in again.', false);
-        return;
-      }
-      $('whoEmail').textContent = currentUser.email || '';
-      state = { actions: [], loaded: false };
-      showView('app');
-      render();
-      reload();
-      startLive();
-    }, function () {
-      noAccess('Could not reach Supabase', 'Check your connection and try again.', true);
-    });
+      });
   }
 
   function handleSession(s) {
     if (!s) {
-      currentUser = null;
+      currentUser = null; profile = null; profiles = [];
+      ui = { resetFor: null, removeFor: null };
       stopLive();
       state = { actions: [], loaded: false };
       showView('auth');
@@ -488,16 +641,16 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
 
   $('signInForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var email = $('aEmail').value.trim();
+    var ident = $('aEmail').value.trim();
     var pw = $('aPass').value;
-    if (!email || !pw) { setAuthErr('Enter your email and password.'); return; }
+    if (!ident || !pw) { setAuthErr('Enter your username and password.'); return; }
     var btn = $('aBtn');
     btn.disabled = true; btn.textContent = 'Signing in…';
     setAuthErr('');
-    sb.auth.signInWithPassword({ email: email, password: pw }).then(function (r) {
+    sb.auth.signInWithPassword({ email: toEmail(ident), password: pw }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Sign in';
       if (r.error) {
-        setAuthErr(/invalid login/i.test(r.error.message) ? 'That email and password do not match.' : r.error.message);
+        setAuthErr(/invalid login/i.test(r.error.message) ? 'That username and password do not match.' : r.error.message);
         $('aPass').value = '';
         $('aPass').focus();
       }
@@ -510,10 +663,40 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
   [].forEach.call(document.querySelectorAll('[data-signout]'), function (b) {
     b.addEventListener('click', function () { sb.auth.signOut(); });
   });
-  $('naRetry').addEventListener('click', function () { currentUser && checkAccess(); });
+  $('naRetry').addEventListener('click', function () { if (currentUser) checkAccess(); });
   $('netRetry').addEventListener('click', reload);
 
-  /* ---------- rendering ---------- */
+  /* ---------- first sign-in: choose a new password ---------- */
+  function setPwErr(msg) {
+    $('pwErr').textContent = msg;
+    $('pwErr').hidden = !msg;
+  }
+  $('pwForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var a = $('pwNew').value, b = $('pwConfirm').value;
+    if (a.length < 8) return setPwErr('Use at least 8 characters.');
+    if (a.toLowerCase() === SAMPLE_PASSWORD) return setPwErr('Choose something other than "' + SAMPLE_PASSWORD + '".');
+    if (a !== b) return setPwErr('The two passwords do not match.');
+    setPwErr('');
+    var btn = $('pwBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    function done() { btn.disabled = false; btn.textContent = 'Save password'; }
+
+    sb.auth.updateUser({ password: a }).then(function (r) {
+      if (r.error) { done(); setPwErr(r.error.message); return; }
+      return sb.from('profiles').update({ must_change_password: false }).eq('id', currentUser.id).select('id').then(function (r2) {
+        done();
+        if (r2.error) { setPwErr('Your password was changed, but we could not finish: ' + r2.error.message); return; }
+        profile.must_change_password = false;
+        enterApp();
+      });
+    }, function () {
+      done();
+      setPwErr('Could not reach Supabase. Check your connection and try again.');
+    });
+  });
+
+  /* ---------- rendering: actions ---------- */
   function groups() {
     var map = {};
     state.actions.forEach(function (a) {
@@ -809,6 +992,196 @@ input:focus-visible,button:focus-visible,.chk:focus-visible{outline:3px solid va
       if (r.error) { reload(); toast(failMsg(r.error)); }
     }, function () { reload(); toast(failMsg(null)); });
   });
+
+  /* ---------- admin: manage users ---------- */
+  var uErr = $('uErr');
+  function setUErr(msg, field) {
+    uErr.textContent = msg || '';
+    uErr.hidden = !msg;
+    ['uName', 'uPass', 'uEmail'].forEach(function (id) { $(id).removeAttribute('aria-invalid'); });
+    if (field) { field.setAttribute('aria-invalid', 'true'); field.focus(); }
+  }
+
+  // Calls the admin-users function. Resolves {ok, data} or {ok:false, message}.
+  function callAdmin(body) {
+    return sb.functions.invoke('admin-users', { body: body }).then(function (r) {
+      if (!r.error) return { ok: true, data: r.data };
+      var ctx = r.error.context;
+      if (ctx && typeof ctx.json === 'function') {
+        return ctx.json().then(function (j) {
+          return { ok: false, message: (j && j.error) || r.error.message || 'Request failed.' };
+        }, function () { return { ok: false, message: r.error.message || 'Request failed.' }; });
+      }
+      return { ok: false, message: r.error.message || 'Request failed.' };
+    }, function () { return { ok: false, message: 'Could not reach Supabase. Check your connection and try again.' }; });
+  }
+
+  function loadProfiles() {
+    return sb.from('profiles')
+      .select('id,username,email,role,active,must_change_password,created_at')
+      .order('username')
+      .then(function (r) {
+        if (r.error) { setUErr('Could not load users: ' + r.error.message); return; }
+        profiles = r.data;
+        renderUsers();
+      }, function () { setUErr('Could not reach Supabase. Check your connection and try again.'); });
+  }
+
+  function run(body, okMsg) {
+    return callAdmin(body).then(function (r) {
+      if (!r.ok) { toast(r.message); return false; }
+      ui.resetFor = null; ui.removeFor = null;
+      toast(okMsg);
+      return loadProfiles().then(function () { return true; });
+    });
+  }
+
+  function ubtn(label, fn, cls) {
+    var b = el('button', 'linkbtn' + (cls ? ' ' + cls : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function renderUsers() {
+    var list = $('userList');
+    list.textContent = '';
+    if (!profiles.length) {
+      var e = el('div', 'empty');
+      e.appendChild(el('strong', null, 'No users yet'));
+      e.appendChild(el('span', null, 'Add the first person above.'));
+      list.appendChild(e);
+      return;
+    }
+    profiles.forEach(function (p) {
+      var me = currentUser && p.id === currentUser.id;
+      var card = el('section', 'card urow');
+
+      var head = el('div', 'uhead');
+      head.appendChild(el('div', 'av', p.username.charAt(0).toUpperCase()));
+      var nm = el('div', 'oname');
+      nm.appendChild(el('h3', null, p.username + (me ? ' (you)' : '')));
+      nm.appendChild(el('p', null, 'Signs in with ' + loginName(p)));
+      head.appendChild(nm);
+      var badges = el('div', 'badges');
+      badges.appendChild(el('span', 'badge', p.role === 'admin' ? 'Admin' : 'Member'));
+      if (!p.active) badges.appendChild(el('span', 'pill', 'Deactivated'));
+      else if (p.must_change_password) badges.appendChild(el('span', 'badge', 'Must change password'));
+      head.appendChild(badges);
+      card.appendChild(head);
+
+      var acts = el('div', 'uactions');
+      acts.appendChild(ubtn('Reset password', function () {
+        ui.resetFor = ui.resetFor === p.id ? null : p.id;
+        ui.removeFor = null;
+        renderUsers();
+        if (ui.resetFor) setTimeout(function () { var i = $('rp-' + p.id); if (i) i.focus(); }, 0);
+      }));
+      if (!me) {
+        acts.appendChild(ubtn(p.role === 'admin' ? 'Make member' : 'Make admin', function () {
+          run({ action: 'set_role', user_id: p.id, role: p.role === 'admin' ? 'member' : 'admin' },
+              p.username + ' is now ' + (p.role === 'admin' ? 'a member' : 'an admin'));
+        }));
+        acts.appendChild(ubtn(p.active ? 'Deactivate' : 'Reactivate', function () {
+          run({ action: 'set_active', user_id: p.id, active: !p.active },
+              p.username + (p.active ? ' can no longer sign in' : ' can sign in again'));
+        }));
+        if (ui.removeFor === p.id) {
+          acts.appendChild(ubtn('Confirm remove', function () {
+            run({ action: 'delete', user_id: p.id }, 'Removed ' + p.username);
+          }, 'danger'));
+          acts.appendChild(ubtn('Cancel', function () { ui.removeFor = null; renderUsers(); }));
+        } else {
+          acts.appendChild(ubtn('Remove', function () {
+            ui.removeFor = p.id; ui.resetFor = null; renderUsers();
+          }, 'danger'));
+        }
+      }
+      card.appendChild(acts);
+
+      if (ui.resetFor === p.id) {
+        var form = el('form', 'inline');
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.id = 'rp-' + p.id;
+        inp.autocomplete = 'off';
+        inp.placeholder = 'New password (at least 6 characters)';
+        inp.setAttribute('aria-label', 'New password for ' + p.username);
+        var ok = el('button', 'btn', 'Set password');
+        ok.type = 'submit';
+        form.appendChild(inp);
+        form.appendChild(ok);
+        form.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          if (inp.value.length < 6) { toast('Password must be at least 6 characters.'); inp.focus(); return; }
+          ok.disabled = true;
+          run({ action: 'reset_password', user_id: p.id, password: inp.value, must_change: true },
+              'New password set for ' + p.username + '. They will choose their own at next sign-in.')
+            .then(function (good) { if (!good) ok.disabled = false; });
+        });
+        card.appendChild(form);
+      }
+      list.appendChild(card);
+    });
+  }
+
+  $('userForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var username = $('uName').value.trim().toLowerCase();
+    var password = $('uPass').value;
+    if (!username) return setUErr('Enter a username.', $('uName'));
+    if (password.length < 6) return setUErr('The initial password needs at least 6 characters.', $('uPass'));
+    var btn = $('uBtn');
+    btn.disabled = true; btn.textContent = 'Adding…';
+    setUErr('');
+    callAdmin({
+      action: 'create', username: username, password: password, role: $('uRole').value,
+      email: $('uEmail').value.trim(), must_change: $('uMust').checked
+    }).then(function (r) {
+      btn.disabled = false; btn.textContent = 'Add user';
+      if (!r.ok) { setUErr(r.message); return; }
+      $('uName').value = ''; $('uPass').value = ''; $('uEmail').value = ''; $('uRole').value = 'member';
+      toast('Added ' + username);
+      loadProfiles();
+    });
+  });
+
+  $('sampleUsers').addEventListener('click', function () {
+    var btn = this;
+    var have = {};
+    profiles.forEach(function (p) { have[p.username] = true; });
+    var todo = SAMPLE_USERS.filter(function (u) { return !have[u]; });
+    if (!todo.length) { toast('The sample team is already here.'); return; }
+    btn.disabled = true;
+    setUErr('');
+    var added = [], failed = null;
+    var chain = Promise.resolve();
+    todo.forEach(function (u) {
+      chain = chain.then(function () {
+        if (failed) return;
+        return callAdmin({
+          action: 'create', username: u, password: SAMPLE_PASSWORD, role: 'member',
+          email: '', must_change: $('uMust').checked
+        }).then(function (r) {
+          if (r.ok) added.push(u); else failed = u + ': ' + r.message;
+        });
+      });
+    });
+    chain.then(function () {
+      btn.disabled = false;
+      if (failed) setUErr('Could not add ' + failed);
+      if (added.length) toast('Added ' + added.join(', '));
+      return loadProfiles();
+    });
+  });
+
+  $('manageBtn').addEventListener('click', function () {
+    ui = { resetFor: null, removeFor: null };
+    setUErr('');
+    showView('users');
+    loadProfiles();
+  });
+  $('backBtn').addEventListener('click', function () { showView('app'); });
 
   /* ---------- housekeeping ---------- */
   function rollover() { if (currentUser && today() !== lastDay) render(); }
